@@ -74,42 +74,22 @@ The server will listen on port 3000 by default.
 
 This project uses a helper script to manage AWS credentials for the MCP server.
 
-### `update-mcp-env.sh`
-
-This script updates the MCP server's credentials by copying values from your `~/.awscreds` file into the `.cursor/mcp.json` configuration.
-
-**When to use:**  
-Run this script whenever your AWS credentials change or expire to ensure the MCP server uses the latest credentials.
-
-**How it works:**
-- Reads AWS credentials from `~/.awscreds` in your home directory.
-- Updates the `mcpServers["aws-cli-mcp-server"].env` section in `.cursor/mcp.json` (in your home directory).
-
-**Usage:**
-```sh
-./update-mcp-env.sh
-```
-
-**Required files:**
-- `~/.awscreds` (must exist and contain your AWS credentials)
-- `~/.cursor/mcp.json` (must exist and be initialized)
-
-**Example `~/.awscreds` file:**
-```
-AWS_ACCESS_KEY_ID=your-access-key-id
-AWS_SECRET_ACCESS_KEY=your-secret-access-key
-AWS_SESSION_TOKEN=your-session-token
-AWS_CREDENTIAL_EXPIRATION=2024-12-31T23:59:59Z
-```
-
-**Troubleshooting:**
-- If either file is missing, the script will print an error and exit.
-- Make sure both files exist before running the script.
-
 ## 🔐 Security Notes
 - This server executes AWS CLI commands with the same permissions as your configured AWS credentials.
 - Be careful about who can access this server.
 - Consider implementing additional authentication for production use.
+
+## 🛠️ Troubleshooting
+
+### MCP Can't Reach AWS Environment Variables
+If you encounter issues where the MCP server cannot access your AWS credentials or environment variables:
+
+- Ensure the environment variables (e.g., `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_DEFAULT_REGION`) are set in the environment where the server is running.
+- If you configured AWS CLI using `aws configure`, ensure the credentials are in the correct profile and accessible to the user running the MCP server.
+- Restart the server after updating environment variables or credentials.
+- Check for typos or missing values in your environment setup.
+
+If problems persist, try running the server in a terminal where you have confirmed the environment variables are set correctly (e.g., by running `env | grep AWS`).
 
 ## 🏗️ Architectural Patterns
 

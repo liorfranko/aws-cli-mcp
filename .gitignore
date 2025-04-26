@@ -24,3 +24,5 @@ logs/
 coverage/
 .idea/
 .vscode/ 
+
+update-mcp-env.sh
