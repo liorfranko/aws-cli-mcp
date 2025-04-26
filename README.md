@@ -44,6 +44,21 @@ dist/               # Compiled output
   { "help": "..." }
   ```
 
+### POST /api/crawl-resources
+- Enumerate all AWS resources in a specific region using the Resource Groups Tagging API
+- **Body:**
+  ```json
+  {
+    "region": "us-west-2"
+  }
+  ```
+- **Returns:**
+  ```json
+  { "resources": [ ... ] }
+  ```
+- **Description:**
+  Returns a list of all AWS resources in the specified region that are discoverable via the Resource Groups Tagging API. Useful for inventory, auditing, and automation workflows.
+
 ## 🚀 Quick Start
 
 1. Clone this repository:

@@ -119,4 +119,30 @@ export function registerAwsCliTools(server: McpServer) {
       });
     }
   );
+
+  // Tool: crawlResources
+  server.tool(
+    'crawlResources',
+    {
+      region: z.string().describe('AWS region to crawl for resources (e.g., us-west-2)'),
+    },
+    async (args) => {
+      const { region } = args;
+      if (!region || region.trim() === '') {
+        return { content: [{ type: 'text', text: 'Region is required.' }] };
+      }
+      const cliCmd = `aws resourcegroupstaggingapi get-resources --region ${region.trim()}`;
+      fs.appendFileSync('/tmp/mcp-debug.log', `\n[${new Date().toISOString()}] Running: ${cliCmd}\nEnv: ${JSON.stringify(process.env, null, 2)}\n`);
+      return new Promise((resolve) => {
+        exec(cliCmd, (error, stdout, stderr) => {
+          fs.appendFileSync('/tmp/mcp-debug.log', `\n[${new Date().toISOString()}] Result: error=${error ? error.message : 'none'}\nstderr=${stderr}\nstdout=${stdout}\n`);
+          if (error) {
+            resolve({ content: [{ type: 'text', text: stderr || error.message }] });
+          } else {
+            resolve({ content: [{ type: 'text', text: stdout }] });
+          }
+        });
+      });
+    }
+  );
 } 
