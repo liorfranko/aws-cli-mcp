@@ -5,9 +5,9 @@ An MCP (Model Context Protocol) server that lets you generate and execute AWS CL
 ## ✨ Features
 
 - Modular, tool-based architecture (inspired by [home-assistant-mcp](https://github.com/liorfranko/home-assistant-mcp))
-- Execute AWS CLI commands through HTTP endpoints
+- Execute AWS CLI commands through HTTP endpoints (**read-only commands only: get, list, describe, help, sts get-caller-identity**)
 - Get detailed information about AWS services
-- Full access to AWS CLI capabilities
+- Full access to AWS CLI capabilities (read-only)
 
 ## 🗂️ Project Structure
 
@@ -21,6 +21,8 @@ dist/               # Compiled output
 ```
 
 ## 🛠️ Tool Reference & API
+
+> **Note:** The MCP server is strictly read-only. Only AWS CLI commands that do not modify state are supported (get, list, describe, help, sts get-caller-identity).
 
 ### POST /api/execute-aws-command
 - Execute an AWS CLI command
@@ -91,6 +93,7 @@ This project uses a helper script to manage AWS credentials for the MCP server.
 
 ## 🔐 Security Notes
 - This server executes AWS CLI commands with the same permissions as your configured AWS credentials.
+- **MCP is strictly read-only: only non-mutating AWS CLI operations are allowed.**
 - Be careful about who can access this server.
 - Consider implementing additional authentication for production use.
 
@@ -112,6 +115,18 @@ If problems persist, try running the server in a terminal where you have confirm
 - Explicit tool registration in `src/index.ts`
 - Strong typing & validation
 - Comprehensive error handling
+- **Strict read-only enforcement for all AWS CLI operations**
+
+## Running Tests
+
+This project uses [Jest](https://jestjs.io/) for testing. To run the test suite:
+
+```sh
+npm install
+npm test
+```
+
+Test files should be placed in the `__tests__/` directory at the project root or alongside the modules they test.
 
 ## License
 MIT License 

@@ -1,7 +1,6 @@
 import { exec } from 'child_process';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import fs from 'fs';
 
 let defaultRegion: string | undefined;
 
@@ -35,9 +34,17 @@ export function registerAwsCliTools(server: McpServer) {
     },
     async (args) => {
       const { command, subcommand, options, region } = args;
+      // Only allow read-only commands
+      const allowedSubcommands = [/^get/, /^list/, /^describe/, /^help/, /^ls$/];
+      const fullCmd = [command, subcommand].filter(Boolean).join(' ');
+      const isStsGetCallerIdentity = fullCmd === 'sts get-caller-identity';
+      const isAllowed =
+        isStsGetCallerIdentity ||
+        (subcommand && allowedSubcommands.some((pat) => pat.test(subcommand)));
+      if (!isAllowed) {
+        return { content: [{ type: 'text', text: 'Error: Only read-only AWS CLI commands are permitted in this MCP.' }] };
+      }
       let cliCmd = `aws ${command}`;
-      // Log the command and environment
-      fs.appendFileSync('/tmp/mcp-debug.log', `\n[${new Date().toISOString()}] Running: ${cliCmd}\nEnv: ${JSON.stringify(process.env, null, 2)}\n`);
       if (subcommand) cliCmd += ` ${subcommand}`;
       if (options && typeof options === 'object') {
         for (const [key, value] of Object.entries(options)) {
@@ -55,8 +62,6 @@ export function registerAwsCliTools(server: McpServer) {
       }
       return new Promise((resolve) => {
         exec(cliCmd, (error, stdout, stderr) => {
-          // Log the result
-          fs.appendFileSync('/tmp/mcp-debug.log', `\n[${new Date().toISOString()}] Result: error=${error ? error.message : 'none'}\nstderr=${stderr}\nstdout=${stdout}\n`);
           if (error) {
             resolve({ content: [{ type: 'text', text: stderr || error.message }] });
           } else {
@@ -106,10 +111,8 @@ export function registerAwsCliTools(server: McpServer) {
       if (effectiveRegion) {
         cliCmd += ` --region ${effectiveRegion}`;
       }
-      fs.appendFileSync('/tmp/mcp-debug.log', `\n[${new Date().toISOString()}] Running: ${cliCmd}\nEnv: ${JSON.stringify(process.env, null, 2)}\n`);
       return new Promise((resolve) => {
         exec(cliCmd, (error, stdout, stderr) => {
-          fs.appendFileSync('/tmp/mcp-debug.log', `\n[${new Date().toISOString()}] Result: error=${error ? error.message : 'none'}\nstderr=${stderr}\nstdout=${stdout}\n`);
           if (error) {
             resolve({ content: [{ type: 'text', text: stderr || error.message }] });
           } else {
@@ -132,10 +135,8 @@ export function registerAwsCliTools(server: McpServer) {
         return { content: [{ type: 'text', text: 'Region is required.' }] };
       }
       const cliCmd = `aws resourcegroupstaggingapi get-resources --region ${region.trim()}`;
-      fs.appendFileSync('/tmp/mcp-debug.log', `\n[${new Date().toISOString()}] Running: ${cliCmd}\nEnv: ${JSON.stringify(process.env, null, 2)}\n`);
       return new Promise((resolve) => {
         exec(cliCmd, (error, stdout, stderr) => {
-          fs.appendFileSync('/tmp/mcp-debug.log', `\n[${new Date().toISOString()}] Result: error=${error ? error.message : 'none'}\nstderr=${stderr}\nstdout=${stdout}\n`);
           if (error) {
             resolve({ content: [{ type: 'text', text: stderr || error.message }] });
           } else {
