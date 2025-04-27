@@ -1,6 +1,18 @@
 import { exec } from 'child_process';
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts';
+import { EC2Client, DescribeVpcsCommand } from '@aws-sdk/client-ec2';
+import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
+import { ResourceGroupsTaggingAPIClient, GetResourcesCommand } from '@aws-sdk/client-resource-groups-tagging-api';
+import { CloudWatchClient, ListDashboardsCommand } from '@aws-sdk/client-cloudwatch';
+import { CloudWatchLogsClient, DescribeLogGroupsCommand } from '@aws-sdk/client-cloudwatch-logs';
+import { CloudWatchEventsClient, ListRulesCommand } from '@aws-sdk/client-cloudwatch-events';
+import { DynamoDBClient, ListTablesCommand } from '@aws-sdk/client-dynamodb';
+import { ElasticLoadBalancingV2Client, DescribeLoadBalancersCommand } from '@aws-sdk/client-elastic-load-balancing-v2';
+import { IAMClient, ListUsersCommand } from '@aws-sdk/client-iam';
+import { LambdaClient, ListFunctionsCommand } from '@aws-sdk/client-lambda';
+import { KafkaClient, ListClustersCommand } from '@aws-sdk/client-kafka';
 
 let defaultRegion: string | undefined;
 
@@ -34,41 +46,77 @@ export function registerAwsCliTools(server: McpServer) {
     },
     async (args) => {
       const { command, subcommand, options, region } = args;
+      const effectiveRegion = region || defaultRegion;
       // Only allow read-only commands
       const allowedSubcommands = [/^get/, /^list/, /^describe/, /^help/, /^ls$/];
-      const fullCmd = [command, subcommand].filter(Boolean).join(' ');
-      const isStsGetCallerIdentity = fullCmd === 'sts get-caller-identity';
-      const isAllowed =
-        isStsGetCallerIdentity ||
-        (subcommand && allowedSubcommands.some((pat) => pat.test(subcommand)));
-      if (!isAllowed) {
-        return { content: [{ type: 'text', text: 'Error: Only read-only AWS CLI commands are permitted in this MCP.' }] };
+      if (!subcommand || !allowedSubcommands.some((pat) => pat.test(subcommand))) {
+        return { content: [{ type: 'text', text: 'Error: Only read-only AWS SDK commands are permitted in this MCP.' }] };
       }
-      let cliCmd = `aws ${command}`;
-      if (subcommand) cliCmd += ` ${subcommand}`;
-      if (options && typeof options === 'object') {
-        for (const [key, value] of Object.entries(options)) {
-          if (typeof value === 'boolean') {
-            if (value) cliCmd += ` --${key}`;
-          } else {
-            cliCmd += ` --${key} ${value}`;
-          }
+      try {
+        if (command === 'ec2' && subcommand === 'describe-vpcs') {
+          const client = new EC2Client({ region: effectiveRegion });
+          const sdkCommand = new DescribeVpcsCommand(options || {});
+          const data = await client.send(sdkCommand);
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
         }
+        if (command === 's3' && subcommand === 'list-buckets') {
+          const client = new S3Client({ region: effectiveRegion });
+          const sdkCommand = new ListBucketsCommand(options || {});
+          const data = await client.send(sdkCommand);
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        }
+        if (command === 'cloudwatch' && subcommand === 'list-dashboards') {
+          const client = new CloudWatchClient({ region: effectiveRegion });
+          const sdkCommand = new ListDashboardsCommand(options || {});
+          const data = await client.send(sdkCommand);
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        }
+        if (command === 'cloudwatchlogs' && subcommand === 'describe-log-groups') {
+          const client = new CloudWatchLogsClient({ region: effectiveRegion });
+          const sdkCommand = new DescribeLogGroupsCommand(options || {});
+          const data = await client.send(sdkCommand);
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        }
+        if (command === 'cloudwatchevents' && subcommand === 'list-rules') {
+          const client = new CloudWatchEventsClient({ region: effectiveRegion });
+          const sdkCommand = new ListRulesCommand(options || {});
+          const data = await client.send(sdkCommand);
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        }
+        if (command === 'dynamodb' && subcommand === 'list-tables') {
+          const client = new DynamoDBClient({ region: effectiveRegion });
+          const sdkCommand = new ListTablesCommand(options || {});
+          const data = await client.send(sdkCommand);
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        }
+        if (command === 'elbv2' && subcommand === 'describe-load-balancers') {
+          const client = new ElasticLoadBalancingV2Client({ region: effectiveRegion });
+          const sdkCommand = new DescribeLoadBalancersCommand(options || {});
+          const data = await client.send(sdkCommand);
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        }
+        if (command === 'iam' && subcommand === 'list-users') {
+          const client = new IAMClient({ region: effectiveRegion });
+          const sdkCommand = new ListUsersCommand(options || {});
+          const data = await client.send(sdkCommand);
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        }
+        if (command === 'lambda' && subcommand === 'list-functions') {
+          const client = new LambdaClient({ region: effectiveRegion });
+          const sdkCommand = new ListFunctionsCommand(options || {});
+          const data = await client.send(sdkCommand);
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        }
+        if (command === 'msk' && subcommand === 'list-clusters') {
+          const client = new KafkaClient({ region: effectiveRegion });
+          const sdkCommand = new ListClustersCommand(options || {});
+          const data = await client.send(sdkCommand);
+          return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+        }
+        return { content: [{ type: 'text', text: `Error: SDK support for '${command} ${subcommand}' is not implemented yet.` }] };
+      } catch (error: any) {
+        return { content: [{ type: 'text', text: `Error: ${error.message || error}` }] };
       }
-      // Add region if provided or defaultRegion is set
-      const effectiveRegion = region || defaultRegion;
-      if (effectiveRegion) {
-        cliCmd += ` --region ${effectiveRegion}`;
-      }
-      return new Promise((resolve) => {
-        exec(cliCmd, (error, stdout, stderr) => {
-          if (error) {
-            resolve({ content: [{ type: 'text', text: stderr || error.message }] });
-          } else {
-            resolve({ content: [{ type: 'text', text: stdout }] });
-          }
-        });
-      });
     }
   );
 
@@ -80,46 +128,42 @@ export function registerAwsCliTools(server: McpServer) {
       region: z.string().optional().describe('AWS region to use for this command'),
     },
     async (args) => {
-      const { service, region } = args;
-      let cliCmd = `aws ${service} help`;
-      const effectiveRegion = region || defaultRegion;
-      if (effectiveRegion) {
-        cliCmd += ` --region ${effectiveRegion}`;
+      const { service } = args;
+      // List available SDK methods for the service
+      if (service === 'ec2') {
+        return { content: [{ type: 'text', text: 'Available EC2 SDK methods: DescribeVpcs, ...' }] };
       }
-      return new Promise((resolve) => {
-        exec(cliCmd, (error, stdout, stderr) => {
-          if (error) {
-            resolve({ content: [{ type: 'text', text: stderr || error.message }] });
-          } else {
-            resolve({ content: [{ type: 'text', text: stdout }] });
-          }
-        });
-      });
-    }
-  );
-
-  // Tool: testAwsCredentials
-  server.tool(
-    'testAwsCredentials',
-    {
-      region: z.string().optional().describe('AWS region to use for this command'),
-    },
-    async (args) => {
-      const { region } = args || {};
-      let cliCmd = 'aws sts get-caller-identity';
-      const effectiveRegion = region || defaultRegion;
-      if (effectiveRegion) {
-        cliCmd += ` --region ${effectiveRegion}`;
+      if (service === 's3') {
+        return { content: [{ type: 'text', text: 'Available S3 SDK methods: ListBuckets, ...' }] };
       }
-      return new Promise((resolve) => {
-        exec(cliCmd, (error, stdout, stderr) => {
-          if (error) {
-            resolve({ content: [{ type: 'text', text: stderr || error.message }] });
-          } else {
-            resolve({ content: [{ type: 'text', text: stdout }] });
-          }
-        });
-      });
+      if (service === 'resourcegroupstaggingapi') {
+        return { content: [{ type: 'text', text: 'Available ResourceGroupsTaggingAPI SDK methods: GetResources, ...' }] };
+      }
+      if (service === 'cloudwatch') {
+        return { content: [{ type: 'text', text: 'Available CloudWatch SDK methods: ListDashboards, ...' }] };
+      }
+      if (service === 'cloudwatchlogs') {
+        return { content: [{ type: 'text', text: 'Available CloudWatchLogs SDK methods: DescribeLogGroups, ...' }] };
+      }
+      if (service === 'cloudwatchevents') {
+        return { content: [{ type: 'text', text: 'Available CloudWatchEvents SDK methods: ListRules, ...' }] };
+      }
+      if (service === 'dynamodb') {
+        return { content: [{ type: 'text', text: 'Available DynamoDB SDK methods: ListTables, ...' }] };
+      }
+      if (service === 'elbv2') {
+        return { content: [{ type: 'text', text: 'Available ELBv2 SDK methods: DescribeLoadBalancers, ...' }] };
+      }
+      if (service === 'iam') {
+        return { content: [{ type: 'text', text: 'Available IAM SDK methods: ListUsers, ...' }] };
+      }
+      if (service === 'lambda') {
+        return { content: [{ type: 'text', text: 'Available Lambda SDK methods: ListFunctions, ...' }] };
+      }
+      if (service === 'msk') {
+        return { content: [{ type: 'text', text: 'Available MSK SDK methods: ListClusters, ...' }] };
+      }
+      return { content: [{ type: 'text', text: `Error: SDK support for service '${service}' is not implemented yet.` }] };
     }
   );
 
@@ -127,23 +171,19 @@ export function registerAwsCliTools(server: McpServer) {
   server.tool(
     'crawlResources',
     {
-      region: z.string().describe('AWS region to crawl for resources (e.g., us-west-2)'),
+      region: z.string().optional().describe('AWS region to crawl for resources (e.g., us-west-2). If not provided, uses the default region.'),
     },
     async (args) => {
       const { region } = args;
-      if (!region || region.trim() === '') {
-        return { content: [{ type: 'text', text: 'Region is required.' }] };
+      const effectiveRegion = region || defaultRegion;
+      try {
+        const client = new ResourceGroupsTaggingAPIClient({ region: effectiveRegion });
+        const sdkCommand = new GetResourcesCommand({});
+        const data = await client.send(sdkCommand);
+        return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
+      } catch (error: any) {
+        return { content: [{ type: 'text', text: `Error: ${error.message || error}` }] };
       }
-      const cliCmd = `aws resourcegroupstaggingapi get-resources --region ${region.trim()}`;
-      return new Promise((resolve) => {
-        exec(cliCmd, (error, stdout, stderr) => {
-          if (error) {
-            resolve({ content: [{ type: 'text', text: stderr || error.message }] });
-          } else {
-            resolve({ content: [{ type: 'text', text: stdout }] });
-          }
-        });
-      });
     }
-  );
+  ); 
 } 

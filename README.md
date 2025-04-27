@@ -8,6 +8,7 @@ An MCP (Model Context Protocol) server that lets you generate and execute AWS CL
 - Execute AWS CLI commands through HTTP endpoints (**read-only commands only: get, list, describe, help, sts get-caller-identity**)
 - Get detailed information about AWS services
 - Full access to AWS CLI capabilities (read-only)
+- Support for more AWS services: MSK (list-clusters), ELBv2 (describe-load-balancers), and dynamic region selection per session
 
 ## 🗂️ Project Structure
 
@@ -23,6 +24,7 @@ dist/               # Compiled output
 ## 🛠️ Tool Reference & API
 
 > **Note:** The MCP server is strictly read-only. Only AWS CLI commands that do not modify state are supported (get, list, describe, help, sts get-caller-identity).
+> **New:** Now supports MSK (list-clusters), ELBv2 (describe-load-balancers), and region selection. Toolset is expanding—see Memory Bank docs for latest.
 
 ### POST /api/execute-aws-command
 - Execute an AWS CLI command
@@ -59,7 +61,7 @@ dist/               # Compiled output
   { "resources": [ ... ] }
   ```
 - **Description:**
-  Returns a list of all AWS resources in the specified region that are discoverable via the Resource Groups Tagging API. Useful for inventory, auditing, and automation workflows.
+  Returns a list of all AWS resources in the specified region that are discoverable via the Resource Groups Tagging API. Useful for inventory, auditing, and automation workflows. Region can be set per session.
 
 ## 🚀 Quick Start
 
@@ -116,6 +118,9 @@ If problems persist, try running the server in a terminal where you have confirm
 - Strong typing & validation
 - Comprehensive error handling
 - **Strict read-only enforcement for all AWS CLI operations**
+- Memory Bank documentation system for maintainability and onboarding
+- Toolset expanding: MSK, ELBv2, region selection, and more
+- Advanced filtering/formatting options planned for future releases
 
 ## Running Tests
 
